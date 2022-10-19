@@ -1,68 +1,109 @@
-################################################################################
-# Copyright 2022 Matthew Deutsch
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-################################################################################
-cmake_minimum_required(VERSION 3.0) 
-project(mineflow)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
+cmake_minimum_required(VERSION 3.16)
 
-################################################################################
+cmake_policy(SET CMP0077 NEW)
 
-if(WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /W3 /O2")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
-elseif(UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++1z")
+# MSVC include all standard libs - no dependencies
+cmake_policy(SET CMP0091 NEW)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# statically link exe against runtime C/C++ libs for linux
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")  # gcc
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libstdc++ -static-libgcc")
+endif()
+
+# set the project name
+project(mineflow_project
+        DESCRIPTION "mineflow"
+        LANGUAGES C CXX)
+
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+
+# add dependencies libs
+add_subdirectory(lib)
+
+# ######################################################
+# MINEFLOW LIBRARY - STATIC
+# ######################################################
+
+# add the library
+set(SOURCE_FILES
+    src/mineflow.cpp
+)
+
+add_library(mineflow STATIC ${SOURCE_FILES})
+
+# library properties (not applied to external libraries)
+set_target_properties(
+	mineflow PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "mineflow"
+	CXX_STANDARD 17
+	CXX_STANDARD_REQUIRED ON
+	C_STANDARD 11
+	C_STANDARD_REQUIRED ON
+	LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+	ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+)
+
+# compiler warnings level
+if(MSVC)
+  target_compile_options(mineflow PRIVATE /W4)
 else()
-    message(FATAL_ERROR "Not yet supported")
+  target_compile_options(mineflow PRIVATE -Wall)
 endif()
 
-################################################################################
-
-add_executable(mineflow
-    mineflow.cpp
-)
-target_compile_definitions(mineflow 
-    PUBLIC 
-    MVD_MINEFLOW_EXE
+# add includes
+target_include_directories(mineflow PUBLIC 
+	include
 )
 
-add_executable(mineflow_test
-    mineflow.cpp
-)
-target_compile_definitions(mineflow_test
-    PUBLIC 
-    MVD_MINEFLOW_TESTS
+# ######################################################
+# UNIT TESTS - CATCH 2
+# ######################################################
+
+set(PSEUDOFLOW_TESTS
+	#tests/newman1/test_pseudoflow_newman1.cpp
+	#tests/zuck_small/test_pseudoflow_zuck_small.cpp
+	tests/kd/test_pseudoflow_kd.cpp
+	#tests/zuck_medium/test_pseudoflow_zuck_medium.cpp
+	#tests/p4hd/test_pseudoflow_p4hd.cpp
+	#tests/marvin/test_pseudoflow_marvin.cpp
+	#tests/w23/test_pseudoflow_w23.cpp
+	#tests/zuck_large/test_pseudoflow_zuck_large.cpp
+	#tests/sm2/test_pseudoflow_sm2.cpp
+    #tests/mclaughlin_limit/test_pseudoflow_mclaughlin_limit.cpp
+    tests/mclaughlin/test_pseudoflow_mclaughlin.cpp
 )
 
-if(UNIX)
-    add_executable(mineflow_test_gmp
-        mineflow.cpp
-    )
-    target_compile_definitions(mineflow_test_gmp
-        PUBLIC
-        MVD_USE_GMP
-        MVD_MINEFLOW_TESTS
-    )
-    target_link_libraries(mineflow_test_gmp
-        gmp
-    )
-endif()
+# Create a target for executing the Catch unit tests.
+add_executable(unitTests
+	tests/testClock.c
+	${PSEUDOFLOW_TESTS}
+)
 
+# add Catch2 libraries
+target_link_libraries(unitTests
+    Catch2::Catch2WithMain
+	mineflow
+)
+
+set_target_properties(unitTests PROPERTIES
+	OUTPUT_NAME "unitTests"
+	SUFFIX ".exe"
+	CXX_STANDARD 17
+	CXX_STANDARD_REQUIRED ON
+	C_STANDARD 11
+	C_STANDARD_REQUIRED ON
+	ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/bin/tests"
+	LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/bin/tests"
+	RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/bin/tests"
+	ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin/tests"
+	LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin/tests"
+	RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin/tests"
+)
+
+target_include_directories(unitTests PUBLIC 
+	include
+	tests
+)

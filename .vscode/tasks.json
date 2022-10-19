@@ -1,0 +1,35 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "process",
+            "label": "valgrind",
+            "command": "valgrind",
+            "args": [
+                "--leak-check=full",
+                "--track-origins=yes",
+                "${workspaceFolder}/bin/tests/unitTests.exe",
+                "[pseudoflow][kd]"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/tests"
+            }
+        },
+        {
+            "type": "process",
+            "label": "runTests C/C++ ALL",
+            "command": "${workspaceFolder}/bin/tests/unitTests.exe",
+            "args": [
+                "--reporter junit",
+                "--out ${workspaceFolder}/tests/.results/testResults.xml"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/tests"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

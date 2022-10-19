@@ -61,7 +61,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <cstring>
 #endif
 
-#include "mineflow.h"
+#include "mineflow.hpp"
 
 using namespace mvd::mineflow;
 using namespace mvd::mineflow::impl;

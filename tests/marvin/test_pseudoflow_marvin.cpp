@@ -9,7 +9,8 @@
 #include <cmath>
 #include <locale>
 
-#include "pseudoflow.h"
+#include "mineflow.hpp"
+using namespace mvd::mineflow;
 
 #include "catch2/catch_test_macros.hpp"
 #include "testClock.h"
@@ -78,26 +79,17 @@ TEST_CASE("pseudoflow_marvin", "[pseudoflow][marvin]")
     }
 
     // initialise node and arc arrays
-    nodeValueArray = new double[numNodesPseudoFlow];
-    arcArray = new uint64[numArcsPseudoFlow * 2];
-
-    // initialise TRONpseudoflowNode/TRONpseudoflowArc values
-	for (uint64 i = 0; i < numNodesPseudoFlow; i++) nodeValueArray[i] = 0;
-	for (uint64 i = 0; i < numArcsPseudoFlow; i++) arcArray[i] = 0;
+    auto vals = std::make_shared<VecBlockValues>(numNodesPseudoFlow);
+    auto precedence = std::make_shared<ExplicitPrecedence>(numNodesPseudoFlow);
 
     // add physical block precedence arcs
-    uint64 idxArcPrec = 0;
     for (uint64 i = 0; i < precsIn.size(); i++)
     {
-        uint64 fromBlockIdx = i;
+        uint64 fromBlockIdx = i;  // from-TRONpseudoflowNode (source)
         for (uint64 j = 0; j < precsIn[i].size(); j++)
         {
-            uint64 toBlockIdx = precsIn[i][j];
-
-            arcArray[idxArcPrec] = fromBlockIdx;  // from-TRONpseudoflowNode (source)
-            idxArcPrec++;
-            arcArray[idxArcPrec] = toBlockIdx;  // to-TRONpseudoflowNode (sink)
-            idxArcPrec++;
+            uint64 toBlockIdx = precsIn[i][j];  // to-TRONpseudoflowNode (sink)
+            precedence->AddPrecedenceConstraint(fromBlockIdx, toBlockIdx);
         }
     }
 
@@ -146,31 +138,23 @@ TEST_CASE("pseudoflow_marvin", "[pseudoflow][marvin]")
     // add value arcs to problem data
     for (uint64 i = 0; i < values.size(); i++)
     {
-        nodeValueArray[i] = values[i];
+        vals->SetBlockValueSI(i, values[i]);
     }
 
-    // prepare output data containers and solve pseudoflow
-    uint8 *cuts = NULL;
-
     // solve pseudoflow
-    RETCODE errorCode = OK;  // error code
-    uint64 iterations = 0;
-    errorCode = pseudoflow(
-        numNodesPseudoFlow,
-        numArcsPseudoFlow,
-        nodeValueArray,
-        arcArray,
-        &cuts,
-        &iterations,
-        1e-8
-    );
-    REQUIRE( errorCode == OK );
+    uint64 startTime = GetTimeMs64();
+
+    PseudoSolver solver(precedence, vals);
+    solver.Solve();
+    
+    uint64 endTime = GetTimeMs64();
+    std::cout << "solve time:     " << (double)(endTime - startTime)/1000 << std::endl;
 
     // get min-cut from pseudoflow calc
     std::vector<uint8> result(numNodesPseudoFlow, 0);
     for (uint64 i = 0; i < numNodesPseudoFlow; i++)
     {
-        result[i] = cuts[i];
+        result[i] = solver.InMinimumCut(i);
     }
 
     // get min cut value to check result
@@ -180,15 +164,9 @@ TEST_CASE("pseudoflow_marvin", "[pseudoflow][marvin]")
         minCutValue += result[i] * values[i];
     }
 
-    std::cout << "Iterations:     " << (int)iterations << std::endl;
     std::cout << "Value:          " << (int)minCutValue << std::endl;
     std::cout << "Expected Value: " << (int)objectiveValue << std::endl;
 
     double percDifference = abs(minCutValue-objectiveValue)/((minCutValue+objectiveValue)/2.0)*100.0;
     CHECK( percDifference < 0.01 );  // less than 0.01% percentage difference
-
-    // release dynamic arrays created during function
-    free(cuts);
-    delete[] nodeValueArray;
-    delete[] arcArray;
 }

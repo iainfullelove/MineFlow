@@ -68,10 +68,10 @@ set(PSEUDOFLOW_TESTS
 	tests/kd/test_pseudoflow_kd.cpp
 	#tests/zuck_medium/test_pseudoflow_zuck_medium.cpp
 	#tests/p4hd/test_pseudoflow_p4hd.cpp
-	#tests/marvin/test_pseudoflow_marvin.cpp
+	tests/marvin/test_pseudoflow_marvin.cpp
 	#tests/w23/test_pseudoflow_w23.cpp
 	#tests/zuck_large/test_pseudoflow_zuck_large.cpp
-	#tests/sm2/test_pseudoflow_sm2.cpp
+	tests/sm2/test_pseudoflow_sm2.cpp
     #tests/mclaughlin_limit/test_pseudoflow_mclaughlin_limit.cpp
     tests/mclaughlin/test_pseudoflow_mclaughlin.cpp
 )

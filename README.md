@@ -171,9 +171,6 @@ Contact Matthew Deutsch by email:
 
 * matthewvdeutsch@gmail.com
 
-Consulting assistance, training, development, and additional support are available.
-
-
 Acknowledgements
 ----------------
 

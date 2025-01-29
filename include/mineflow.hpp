@@ -1070,7 +1070,7 @@ public:
 
     double MinSlope() const;
 
-    size_t NumPairs() const;
+    uint64_t NumPairs() const;
     const std::vector<AzmSlopePair>& Pairs() const;
     bool Empty() const;
 
@@ -1096,7 +1096,7 @@ struct PrecedencePattern
     using iterator = std::vector<Vector3IT>::iterator;
     using const_iterator = std::vector<Vector3IT>::const_iterator;
 
-    size_t size() const;
+    uint64_t size() const;
     iterator begin();
     iterator end();
     const_iterator begin() const;
@@ -1198,6 +1198,24 @@ private:
     } m_InnerRegion;
 
     std::tuple<IndexType, IndexType, IndexType> XYZ(IndexType k) const;
+};
+
+class Regular3DBlockModelKeyedPatternsPrecedence : public IPrecedenceConstraints
+{
+public:
+    Regular3DBlockModelKeyedPatternsPrecedence(const BlockDefinition& blockDef,
+            const std::vector<PrecedencePattern>& patterns,
+            std::shared_ptr<std::vector<IndexType>> patternIndices);
+    ~Regular3DBlockModelKeyedPatternsPrecedence();
+
+    IndexType NumBlocks() const override final;
+    BlockIndexInputIteratorBase Antecedents(IndexType fromBlockIndex) const override final;
+    BlockIndexInputIteratorBase Successors(IndexType toBlockIndex) const override final;
+    IndexType ApproxNumAntecedents(IndexType fromBlockIndex) const override final;
+
+private:
+    std::vector<Regular3DBlockModelPatternPrecedence> m_Patterns;
+    std::shared_ptr<std::vector<IndexType>> m_PatternIndices;
 };
 
 //
